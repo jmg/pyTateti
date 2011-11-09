@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "PyTateti.py", line 322, in <module>
-pygame.error: video system not initialized
-Traceback (most recent call last):
-  File "PyTateti.py", line 322, in <module>
-pygame.error: video system not initialized
