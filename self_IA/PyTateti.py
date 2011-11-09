@@ -1,35 +1,49 @@
 import pygame
 import random
 
-class circle(pygame.sprite.Sprite):
 
-    CIRCLE_SIZE = (190,190)
+class Shape(pygame.sprite.Sprite):
+
+    SIZE = (190,190)       
+
+
+class Circle(Shape):
+       
     CIRCLE_COLOR = (0,255,255)
     SUB_CIRCLE_COLOR = (0,0,255)
 
     def __init__(self, screen, pos):
-        pygame.sprite.Sprite.__init__(self)
-        x = pos[0] + self.CIRCLE_SIZE[0] / 2
-        y = pos[1] + self.CIRCLE_SIZE[1] / 2
-        pygame.draw.circle(screen, self.CIRCLE_COLOR, (x,y) , 60)
-        pygame.draw.circle(screen, self.SUB_CIRCLE_COLOR, (x,y) , 50)
+        
+        self.x = pos[0] + self.SIZE[0] / 2
+        self.y = pos[1] + self.SIZE[1] / 2
+        pygame.draw.circle(screen, self.CIRCLE_COLOR, (self.x,self.y) , 60)
+        pygame.draw.circle(screen, self.SUB_CIRCLE_COLOR, (self.x,self.y) , 50)
+    
+    def mark(self, square):
+        
+        square.circled = True
 
-class cross(pygame.sprite.Sprite):
 
-    CROSS_SIZE = (190,190)
+class Cross(Shape):
+    
     CROSS_COLOR = (255,0,0)
     SUB_CROSS_COLOR = (0,0,255)
     FACE = 120
     SUB_FACE = 100
 
     def __init__(self, screen, pos):
-        pygame.sprite.Sprite.__init__(self)
-        x = pos[0] + self.CROSS_SIZE[0] / 2 - self.FACE / 2
-        y = pos[1] + self.CROSS_SIZE[1] / 2 - self.FACE / 2
-        pygame.draw.rect(screen, self.CROSS_COLOR, pygame.Rect(x,y,self.FACE,self.FACE))
-        pygame.draw.rect(screen, self.SUB_CROSS_COLOR, pygame.Rect(x+10,y+10,self.SUB_FACE,self.SUB_FACE))
+        
+        self.x = pos[0] + self.SIZE[0] / 2 - self.FACE / 2
+        self.y = pos[1] + self.SIZE[1] / 2 - self.FACE / 2
+        pygame.draw.rect(screen, self.CROSS_COLOR, pygame.Rect(self.x,self.y,self.FACE,self.FACE))
+        pygame.draw.rect(screen, self.SUB_CROSS_COLOR, pygame.Rect(self.x+10,self.y+10,self.SUB_FACE,self.SUB_FACE))
+        
+    def mark(self, square):
+        
+        square.crossed = True
+        
 
-class IA:
+class IA(object):
 
     def __init__(self, squares, screen):
         self.squares = squares
@@ -38,12 +52,12 @@ class IA:
     def play(self, type):
         if type == 2:
             square = self.think()
-            mark = cross(self.screen, square.pos)
+            mark = Cross(self.screen, square.pos)
             square.crossed = True
             print square.pos, "crossed"
         else:
             square = self.think()
-            mark = circle(self.screen, square.pos)
+            mark = Circle(self.screen, square.pos)
             square.circled = True
             print square.pos, "circled"
 
@@ -68,9 +82,7 @@ class IA:
     def tate(self):
 
         tateList = self.posibleTate()
-#        print "Lista de tates"
-#        for i in tateList:
-#            print i
+
         for places in tateList:
 
             if places[1] - places[0] == 1:
@@ -176,7 +188,6 @@ class IA:
         for i in range(len(corner)):
             square = self.squares[corner[random.randint(0,len(corner) - 1)]]
             if not square.marked():
-                print "selected corner"
                 return square
         return self.anySide()
 
@@ -185,31 +196,34 @@ class IA:
         for i in range(4):
             square = self.squares[corner[random.randint(0,3)]]
             if not square.marked():
-                print "any side"
                 return square
         return self.any()
 
     def any(self):
         for square in self.squares:
             if not square.marked():
-                print "any"
                 return square
 
 
-class Player1:
+class Player(object):
 
     def play(self, square, screen):
-        mark = circle(screen, square.pos)
-        square.circled = True
-
-class Player2:
-
-    def play(self, square, screen):
-        mark = cross(screen, square.pos)
-        square.crossed = True
+        
+        shape = self.shape_class(screen, square.pos)
+        shape.mark(square)        
 
 
-class square(pygame.sprite.Sprite):
+class Player1(Player):
+
+    shape_class = Circle
+        
+
+class Player2(Player):
+    
+    shape_class = Cross
+
+    
+class Square(pygame.sprite.Sprite):
 
     SQUARE_SIZE = (190,190)
     SQUARE_COLOR = (0,0,255)
@@ -234,23 +248,23 @@ class square(pygame.sprite.Sprite):
         return self.crossed or self.circled
 
 
-class window:
+class window(object):
 
     SIZE = (590,590)
     SQUARE_HEIGHT = 200
     SQUARE_WIDHT = 200
 
-    square1 = square((0,0))
-    square2 = square((0,SQUARE_HEIGHT))
-    square3 = square((0,SQUARE_HEIGHT * 2))
+    square1 = Square((0,0))
+    square2 = Square((0,SQUARE_HEIGHT))
+    square3 = Square((0,SQUARE_HEIGHT * 2))
 
-    square4 = square((SQUARE_WIDHT,0))
-    square5 = square((SQUARE_WIDHT,SQUARE_HEIGHT))
-    square6 = square((SQUARE_WIDHT,SQUARE_HEIGHT * 2))
+    square4 = Square((SQUARE_WIDHT,0))
+    square5 = Square((SQUARE_WIDHT,SQUARE_HEIGHT))
+    square6 = Square((SQUARE_WIDHT,SQUARE_HEIGHT * 2))
 
-    square7 = square((SQUARE_WIDHT * 2,0))
-    square8 = square((SQUARE_WIDHT * 2,SQUARE_HEIGHT))
-    square9 = square((SQUARE_WIDHT * 2,SQUARE_HEIGHT * 2))
+    square7 = Square((SQUARE_WIDHT * 2,0))
+    square8 = Square((SQUARE_WIDHT * 2,SQUARE_HEIGHT))
+    square9 = Square((SQUARE_WIDHT * 2,SQUARE_HEIGHT * 2))
 
     squares = [square1,square2,square3, \
                square4,square5,square6, \
