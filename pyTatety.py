@@ -4,44 +4,44 @@ import random
 
 class Shape(pygame.sprite.Sprite):
 
-    SIZE = (190,190)       
+    SIZE = (190,190)
 
 
 class Circle(Shape):
-       
+
     CIRCLE_COLOR = (0,255,255)
     SUB_CIRCLE_COLOR = (0,0,255)
 
     def __init__(self, screen, pos):
-        
+
         self.x = pos[0] + self.SIZE[0] / 2
         self.y = pos[1] + self.SIZE[1] / 2
         pygame.draw.circle(screen, self.CIRCLE_COLOR, (self.x,self.y) , 60)
         pygame.draw.circle(screen, self.SUB_CIRCLE_COLOR, (self.x,self.y) , 50)
-    
+
     def mark(self, square):
-        
+
         square.circled = True
 
 
 class Cross(Shape):
-    
+
     CROSS_COLOR = (255,0,0)
     SUB_CROSS_COLOR = (0,0,255)
     FACE = 120
     SUB_FACE = 100
 
     def __init__(self, screen, pos):
-        
+
         self.x = pos[0] + self.SIZE[0] / 2 - self.FACE / 2
         self.y = pos[1] + self.SIZE[1] / 2 - self.FACE / 2
         pygame.draw.rect(screen, self.CROSS_COLOR, pygame.Rect(self.x,self.y,self.FACE,self.FACE))
         pygame.draw.rect(screen, self.SUB_CROSS_COLOR, pygame.Rect(self.x+10,self.y+10,self.SUB_FACE,self.SUB_FACE))
-        
+
     def mark(self, square):
-        
+
         square.crossed = True
-        
+
 
 class IA(object):
 
@@ -201,21 +201,21 @@ class IA(object):
 class Player(object):
 
     def play(self, square, screen):
-        
+
         shape = self.shape_class(screen, square.pos)
-        shape.mark(square)        
+        shape.mark(square)
 
 
 class Player1(Player):
 
     shape_class = Circle
-        
+
 
 class Player2(Player):
-    
+
     shape_class = Cross
 
-    
+
 class Square(pygame.sprite.Sprite):
 
     SQUARE_SIZE = (190,190)
@@ -259,9 +259,9 @@ class window(object):
     square8 = Square((SQUARE_WIDHT * 2,SQUARE_HEIGHT))
     square9 = Square((SQUARE_WIDHT * 2,SQUARE_HEIGHT * 2))
 
-    squares = [square1,square2,square3, \
-               square4,square5,square6, \
-              square7,square8,square9]
+    squares = [square1,square2,square3,
+               square4,square5,square6,
+               square7,square8,square9]
 
     turn = 1
     player1 = Player1()
@@ -356,5 +356,5 @@ if __name__ == "__main__":
         if not game.checkWinner():
             game.checkDue()
         pygame.display.flip()
-    
+
     pygame.display.quit()
