@@ -103,13 +103,16 @@ class QLearningAgent(BaseAgent):
                 print self.q_table[state]
             except:
                 pass
-            print max_actions, max_q
 
             if not max_actions:
                 max_actions = valid_square_numbers
                 self.total_exploration += 1
 
             action = random.choice(max_actions)
+
+            print "*" * 80
+            print "Selected action: {} with Q: {}".format(action, max_q)
+            print "*" * 80
 
         return action
 

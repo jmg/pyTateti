@@ -49,7 +49,7 @@ class IA(object):
         self.squares = squares
         self.screen = screen
 
-    def _get_state(self, squares):
+    def get_state(self, squares):
 
         state = []
         for square in squares:
@@ -66,82 +66,19 @@ class IA(object):
 
         return [s for s in self.squares if not s.marked()]
 
-    def _play(self, agent):
+    def play(self, agent):
 
         empty_squares = self.get_empty_squares()
         if not empty_squares:
             return
 
-        state = self._get_state(self.squares)
+        state = self.get_state(self.squares)
         square_number = agent.get_action(state, empty_squares)
         square = self.squares[square_number]
 
         Circle(self.screen, square)
 
         return square, state
-
-    def play_ia(self, agent):
-
-        self._play(agent)
-
-    def play(self, agent):
-
-        square, state = self._play(agent)
-        game_result = self.game.game_results()
-
-        if game_result is None:
-            #play with a random action player
-            self.random_play()
-            game_result = self.game.game_results()
-
-        if game_result is not None:
-            #end game
-            new_state = None
-            reward = game_result * 20
-        else:
-            new_state = self._get_state(self.squares)
-            two_in_a_row_count = self.marks_in_a_row("circled")
-            reward = square.score + two_in_a_row_count
-
-        agent.learn(state, new_state, reward, square.number, "")
-
-        return square.number
-
-    def marks_in_a_row(self, mark, marks_num=2):
-
-        marks_in_a_row_count = 0
-
-        #check rows
-        for i in range(3):
-            marks_count = 0
-            for j in range(3):
-                num = i*3+j
-                if getattr(self.squares[num], mark):
-                    marks_count += 1
-            if marks_count == marks_num:
-                marks_in_a_row_count += 1
-
-        #check columns
-        for i in range(3):
-            marks_count = 0
-            for j in range(3):
-                num = i+j*3
-                if getattr(self.squares[num], mark):
-                    marks_count += 1
-            if marks_count == marks_num:
-                marks_in_a_row_count += 1
-
-        #check diagonals
-        diagonals = [[0,4,8], [2,4,6]]
-        for diagonal in diagonals:
-            marks_count = 0
-            for i in diagonal:
-                if getattr(self.squares[i], mark):
-                    marks_count += 1
-            if marks_count == marks_num:
-                marks_in_a_row_count += 1
-
-        return marks_in_a_row_count
 
     def random_play(self):
 
@@ -227,7 +164,7 @@ class Game(object):
         for i in range(3):
             for j in range(3):
                 num = i*3+j
-                square = Square(num, self.squares_scores[num], (i*self.SQUARE_WIDHT, j*self.SQUARE_HEIGHT))
+                square = Square(num, self.squares_scores[num], (j*self.SQUARE_HEIGHT, i*self.SQUARE_WIDHT))
                 self.squares.append(square)
 
         self.screen = pygame.display.set_mode(self.SIZE)
@@ -251,20 +188,97 @@ class Game(object):
         if not valid_click:
             return
 
+        self.learn(agent, self.old_state, self.last_selected_square)
+
         if self.game_results() is None:
-            self.cpu.play_ia(agent)
+            self.play_ia(agent)
 
-    def play(self, agent):
+        if self.game_results() is not None:
+            self.learn(agent, self.old_state, self.last_selected_square)
 
-        return self.cpu.play(agent)
+    def play_ia(self, agent):
+
+        square, state = self.cpu.play(agent)
+        self.old_state = state
+        self.last_selected_square = square
+
+    def play(self, agent, second_player_action):
+
+        square, state = self.cpu.play(agent)
+        game_result = self.game_results()
+
+        if game_result is None:
+            #play with a random action player
+            self.cpu.random_play()
+
+        self.learn(agent, state, square.number)
+        return square.number
+
+    def learn(self, agent, old_state, selected_square):
+
+        game_result = self.game_results()
+        if game_result is not None:
+            #end game
+            new_state = None
+            reward = game_result * 10
+        else:
+            new_state = self.cpu.get_state(self.squares)
+            reward = self.calculate_score(selected_square)
+
+        agent.learn(old_state, new_state, reward, selected_square.number, "")
+
+    def calculate_score(self, square):
+
+        two_in_a_row_count = self.marks_in_a_row("circled")
+        score = square.score + two_in_a_row_count
+
+        return score
+
+    def _get_marks_in_row(self, rows, mark, marks_num=2):
+
+        marks_in_a_row_count = 0
+        counter_marks_in_a_row_count = 0
+
+        counter_marks = {
+            "circled": "crossed",
+            "crossed": "circled",
+        }
+        counter_mark = counter_marks[mark]
+
+        for row in rows:
+            marks_count = 0
+            for num in row:
+                if getattr(self.squares[num], mark):
+                    marks_count += 1
+                elif getattr(self.squares[num], counter_mark):
+                    counter_marks_in_a_row_count += 1
+
+            if marks_count == marks_num:
+                marks_in_a_row_count += 1
+
+        return marks_in_a_row_count
+
+    def marks_in_a_row(self, mark, marks_num=2):
+
+        marks_in_a_row_count = 0
+
+        rows = [[0,1,2],[3,4,5],[6,7,8]]
+        cols = [[0,3,6],[1,4,7],[2,5,8]]
+        diagonals = [[0,4,8], [2,4,6]]
+
+        marks_in_a_row_count += self._get_marks_in_row(rows, mark, marks_num)
+        marks_in_a_row_count += self._get_marks_in_row(cols, mark, marks_num)
+        marks_in_a_row_count += self._get_marks_in_row(diagonals, mark, marks_num)
+
+        return marks_in_a_row_count
 
     def game_results(self):
 
-        if self.cpu.marks_in_a_row("circled", marks_num=3):
+        if self.marks_in_a_row("circled", marks_num=3):
             self.winner("Circulo")
             return 1
 
-        if self.cpu.marks_in_a_row("crossed", marks_num=3):
+        if self.marks_in_a_row("crossed", marks_num=3):
             self.winner("Cuadrado")
             return -1
 
@@ -294,7 +308,7 @@ class Game(object):
 
     def get_state(self):
 
-        return self.cpu._get_state(self.squares)
+        return self.cpu.get_state(self.squares)
 
     def train(self, total_games=500):
 
@@ -334,7 +348,7 @@ if __name__ == "__main__":
     #do not explorate more
     agent.use_epsilon = False
 
-    game.cpu.play_ia(agent)
+    game.play_ia(agent)
     pygame.display.flip()
     end = False
     game_started = True
@@ -348,7 +362,7 @@ if __name__ == "__main__":
             if event.type == pygame.MOUSEBUTTONDOWN:
 
                 if not game_started:
-                    game.cpu.play_ia(agent)
+                    game.play_ia(agent)
                     pygame.display.flip()
                     game_started = True
                 else:
