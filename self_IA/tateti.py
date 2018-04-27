@@ -112,17 +112,16 @@ class Square(pygame.sprite.Sprite):
     SQUARE_SIZE = (190,190)
     SQUARE_COLOR = (0,0,255)
 
-    def __init__(self, number, score, pos):
+    circled = False
+    crossed = False
+
+    def __init__(self, number, pos):
 
         pygame.sprite.Sprite.__init__(self)
         self.square = pygame.surface.Surface(self.SQUARE_SIZE)
         self.set_color(self.SQUARE_COLOR)
         self.set_position(pos)
         self.number = number
-        self.score = score
-
-        self.circled = False
-        self.crossed = False
 
     def set_color(self, color):
 
@@ -150,10 +149,6 @@ class Game(object):
     SQUARE_WIDHT = 200
     squares = []
 
-    squares_scores = [0.5, 0.2, 0.5,
-                      0.2, 10, 0.2,
-                      0.5, 0.2, 0.5]
-
     def __init__(self):
 
         pygame.init()
@@ -164,7 +159,7 @@ class Game(object):
         for i in range(3):
             for j in range(3):
                 num = i*3+j
-                square = Square(num, self.squares_scores[num], (j*self.SQUARE_HEIGHT, i*self.SQUARE_WIDHT))
+                square = Square(num, (j*self.SQUARE_HEIGHT, i*self.SQUARE_WIDHT))
                 self.squares.append(square)
 
         self.screen = pygame.display.set_mode(self.SIZE)
@@ -223,21 +218,30 @@ class Game(object):
             reward = game_result * 10
         else:
             new_state = self.cpu.get_state(self.squares)
-            reward = self.calculate_score(selected_square)
+            reward = self.calculate_score()
 
         agent.learn(old_state, new_state, reward, selected_square.number, "")
 
-    def calculate_score(self, square):
+    def calculate_score(self):
 
-        two_in_a_row_count = self.marks_in_a_row("circled")
-        score = square.score + two_in_a_row_count
+        two_in_a_row_count = self.posibilities_of_n_in_a_row("circled", marks_num=2)
+        one_in_a_row_count = self.posibilities_of_n_in_a_row("circled", marks_num=1)
+
+        counter_two_in_a_row_count = self.posibilities_of_n_in_a_row("crossed", marks_num=2)
+        counter_one_in_a_row_count = self.posibilities_of_n_in_a_row("crossed", marks_num=1)
+
+        score = two_in_a_row_count * 2 + one_in_a_row_count - counter_two_in_a_row_count * 2 - counter_one_in_a_row_count
+
+        print "*" * 80
+        print "The current state score is: {}".format(score)
+        print "{} + {} - {} - {}".format(two_in_a_row_count * 2, one_in_a_row_count, counter_two_in_a_row_count * 2, counter_one_in_a_row_count)
+        print "*" * 80
 
         return score
 
     def _get_marks_in_row(self, rows, mark, marks_num=2):
 
         marks_in_a_row_count = 0
-        counter_marks_in_a_row_count = 0
 
         counter_marks = {
             "circled": "crossed",
@@ -247,18 +251,19 @@ class Game(object):
 
         for row in rows:
             marks_count = 0
+            counter_marks_count = 0
             for num in row:
                 if getattr(self.squares[num], mark):
                     marks_count += 1
                 elif getattr(self.squares[num], counter_mark):
-                    counter_marks_in_a_row_count += 1
+                    counter_marks_count += 1
 
-            if marks_count == marks_num:
+            if marks_count == marks_num and counter_marks_count == 0:
                 marks_in_a_row_count += 1
 
         return marks_in_a_row_count
 
-    def marks_in_a_row(self, mark, marks_num=2):
+    def posibilities_of_n_in_a_row(self, mark, marks_num=3):
 
         marks_in_a_row_count = 0
 
@@ -274,11 +279,11 @@ class Game(object):
 
     def game_results(self):
 
-        if self.marks_in_a_row("circled", marks_num=3):
+        if self.posibilities_of_n_in_a_row("circled", marks_num=3):
             self.winner("Circulo")
             return 1
 
-        if self.marks_in_a_row("crossed", marks_num=3):
+        if self.posibilities_of_n_in_a_row("crossed", marks_num=3):
             self.winner("Cuadrado")
             return -1
 
@@ -349,6 +354,8 @@ if __name__ == "__main__":
     agent.use_epsilon = False
 
     game.play_ia(agent)
+    game.calculate_score()
+
     pygame.display.flip()
     end = False
     game_started = True
@@ -363,6 +370,8 @@ if __name__ == "__main__":
 
                 if not game_started:
                     game.play_ia(agent)
+                    game.calculate_score()
+
                     pygame.display.flip()
                     game_started = True
                 else:
